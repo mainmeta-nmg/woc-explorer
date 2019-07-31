@@ -69,7 +69,7 @@ function getInputs(tx_id, vin, parent_txs) {
     let parent_vout = parent_tx.vout[input.vout];
     res.push({
       address: parent_vout.scriptPubKey.addresses[0],
-      value: BigNumber(parent_vout.value)
+      value: BigNumber(parent_vout.value * Math.pow(10, 8)).toFixed(0)
     })
   }
 
@@ -77,7 +77,7 @@ function getInputs(tx_id, vin, parent_txs) {
 }
 
 function getTotalValue(ins) {
-  return ins.reduce((res, cur) => res.plus(cur.value), BigNumber(0.0));
+  return ins.reduce((res, cur) => res.plus(cur.value), BigNumber(0))
 }
 
 function getOutputs(outputs) {
@@ -86,7 +86,7 @@ function getOutputs(outputs) {
     if(output.scriptPubKey.addresses) {
       res.push({
         address: output.scriptPubKey.addresses[0],
-        value: BigNumber(output.value)
+        value: BigNumber(output.value * Math.pow(10, 8)).toFixed(0)
       })  
     }
   }
@@ -109,8 +109,8 @@ function getTransaction(tx, blockHeight, parent_tx) {
   res.transaction.inputs = getInputs(tx.txid, tx.vin, parent_tx);
   res.transaction.inputsValue = getTotalValue(res.transaction.inputs);
   res.transaction.outputs = getOutputs(tx.vout);
-  const transaction_outputs_value = getTotalValue(tx.vout);
-  res.transaction.fee = (BigNumber(res.transaction.inputsValue) - BigNumber(transaction_outputs_value)).toFixed(8);
+  const transaction_outputs_value = getTotalValue(res.transaction.outputs);
+  res.transaction.fee = (BigNumber(res.transaction.inputsValue) - BigNumber(transaction_outputs_value)).toFixed(0);
 
   return res;
 }
@@ -154,8 +154,8 @@ router.get("/blocks/:blockHeight/transactions", function(req, res) {
       res.json({
         data: {
           totalCount: result.getblock.tx.length,
-          offset: offset,
-          limit: limit,
+          page: Math.floor(offset/limit),
+          pageSize: limit,
           transactions: transactions,
         },
         errNo: 0,
