@@ -16,6 +16,14 @@ router.get("/blocks/:blockHeight", function(req, res) {
 	res.locals.paginationBaseUrl = `/blocks/${blockHeight}/transactions`;
 
 	coreApi.getBlockByHeight(blockHeight).then(function(result) {
+    if(!result) {
+      return res.json({
+        data: null,
+        errNo: 0,
+        errMsg: ""
+      })
+    }
+
     res.locals.result = JSON.parse(JSON.stringify(result))
     res.locals.result.txCount = result.tx.length
     delete res.locals.result.tx
