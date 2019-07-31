@@ -84,10 +84,10 @@ module.exports = {
 	],
 
 	site: {
-		blockTxPageSize:10,
-		addressTxPageSize:10,
-		txMaxInput:10,
-		browseBlocksPageSize:20
+		blockTxPageSize:100,
+		addressTxPageSize:100,
+		txMaxInput:1000,
+		browseBlocksPageSize:200
 	},
 
 	credentials: credentials,
