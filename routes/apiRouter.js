@@ -152,7 +152,12 @@ router.get("/blocks/:blockHeight/transactions", function(req, res) {
       }
 
       res.json({
-        data: transactions,
+        data: {
+          totalCount: result.getblock.tx.length,
+          offset: offset,
+          limit: limit,
+          transactions: transactions,
+        },
         errNo: 0,
         errMsg: ""  
       });
