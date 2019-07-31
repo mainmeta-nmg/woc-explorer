@@ -1,3 +1,6 @@
+const _ = require('lodash');
+const BigNumber = require('bignumber.js');
+
 var express = require('express');
 var router = express.Router();
 
@@ -13,12 +16,99 @@ router.get("/blocks/:blockHeight", function(req, res) {
 	res.locals.paginationBaseUrl = `/blocks/${blockHeight}/transactions`;
 
 	coreApi.getBlockByHeight(blockHeight).then(function(result) {
-    res.locals.result = result
+    res.locals.result = JSON.parse(JSON.stringify(result))
     res.locals.result.txCount = result.tx.length
+    delete res.locals.result.tx
 
-    res.json(res.locals);
+    res.locals.result = {
+      hash: result.hash,
+      confirmations: result.confirmations,
+      height: result.height,
+      merkleroot: result.merkleroot,
+      tx_count: result.tx.length
+    }
+
+    res.json(res.locals.result);
 	});
 });
+
+function getIsCoinbase(vin) {
+  for(const input of vin) {
+    if(input.coinbase) {
+      return true
+    }
+  }
+
+  return false;
+}
+
+function getIsNullData(vout) {
+  for(const output of vout) {
+    if(output.scriptPubKey.type === "nulldata") {
+      return true
+    }
+  }
+
+  return false;
+}
+
+function getInputs(tx_id, vin, parent_txs) {
+  let res = []
+  for(const input of vin) {
+    if(input.coinbase) {
+      continue;
+    }
+
+    let parent_tx = _.find(parent_txs[tx_id], function(element) {
+      return element.txid == input.txid;
+    });
+    let parent_vout = parent_tx.vout[input.vout];
+    res.push({
+      address: parent_vout.scriptPubKey.addresses[0],
+      value: BigNumber(parent_vout.value)
+    })
+  }
+
+  return res;
+}
+
+function getTotalValue(ins) {
+  return ins.reduce((res, cur) => res.plus(cur.value), BigNumber(0.0));
+}
+
+function getOutputs(outputs) {
+  let res = []
+  for(const output of outputs) {
+    if(output.scriptPubKey.addresses) {
+      res.push({
+        address: output.scriptPubKey.addresses[0],
+        value: BigNumber(output.value)
+      })  
+    }
+  }
+  return res;
+}
+
+function getTransaction(tx, blockHeight, parent_tx) {
+  let res = {
+    transaction: {
+      confirmations: tx.confirmations,
+      block_height: blockHeight,
+      block_hash: tx.blockhash,
+      hash: tx.txid,
+      input_count: tx.vin.length
+    }
+  }
+  res.is_coinbase = getIsCoinbase(tx.vin);
+  res.is_null_data = getIsNullData(tx.vout);
+  res.transaction.inputs = getInputs(tx.txid, tx.vin, parent_tx);
+  res.transaction.inputs_value = getTotalValue(res.transaction.inputs);
+  res.transaction.outputs = getOutputs(tx.vout);
+  const transaction_outputs_value = getTotalValue(tx.vout);
+  res.transaction.fee = (BigNumber(res.transaction.inputs_value) - BigNumber(transaction_outputs_value)).toFixed(8);
+
+  return res;
+}
 
 router.get("/blocks/:blockHeight/transactions", function(req, res) {
 	var blockHeight = parseInt(req.params.blockHeight);
@@ -44,12 +134,20 @@ router.get("/blocks/:blockHeight/transactions", function(req, res) {
 	coreApi.getBlockByHeight(blockHeight).then(function(result) {
 		coreApi.getBlockByHashWithTransactions(result.hash, limit, offset).then(function(result) {
 			
-			// res.locals.result.getblock = result.getblock
-			// res.locals.result.getblock.txCount = result.getblock.tx.length
 			res.locals.result.transactions = result.transactions;
-			res.locals.result.txInputsByTransaction = result.txInputsByTransaction;
+      res.locals.result.txInputsByTransaction = result.txInputsByTransaction;
+      
+      transactions = []
+      for(const tx of result.transactions) {
+        const res_trans = getTransaction(tx, blockHeight, result.txInputsByTransaction);
 
-			res.json(res.locals);
+
+        if(!(res_trans.is_coinbase || res_trans.is_null_data))
+          transactions.push(res_trans.transaction);
+      }
+
+      res.json(transactions);
+      // res.json(res.locals.result);
 		});
 	});
 });
@@ -83,7 +181,9 @@ router.get("/transactions/:transactionId", function(req, res) {
 			coreApi.getRawTransactions(txids).then(function(txInputs) {
 				res.locals.result.txInputs = txInputs;
 
-				res.json(res.locals);
+        const res_trans = getTransaction(rawTxResult, result3.height, {[txid]: txInputs});
+
+				res.json(res_trans.transaction);
 			});
 		});
 	}).catch(function(err) {
