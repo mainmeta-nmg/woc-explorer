@@ -2,6 +2,11 @@
 @host = localhost
 @port = 3002
 
+#@scheme = https
+#@host = api-bsv.satocash.com
+#@port = 443
+
+
 GET {{scheme}}://{{host}}:{{port}}/api/blocks/593477
 
 GET {{scheme}}://{{host}}:{{port}}/api/blocks/593477/transactions?offset=0&limit=10

@@ -25,7 +25,7 @@ router.get("/blocks/:blockHeight", function(req, res) {
       confirmations: result.confirmations,
       height: result.height,
       merkleroot: result.merkleroot,
-      tx_count: result.tx.length
+      txCount: result.tx.length
     }
 
     res.json(res.locals.result);
@@ -92,20 +92,21 @@ function getOutputs(outputs) {
 function getTransaction(tx, blockHeight, parent_tx) {
   let res = {
     transaction: {
+      asset: "BSV",
       confirmations: tx.confirmations,
-      block_height: blockHeight,
-      block_hash: tx.blockhash,
+      blockHeight: blockHeight,
+      blockHash: tx.blockhash,
       hash: tx.txid,
-      input_count: tx.vin.length
+      inputsCount: tx.vin.length
     }
   }
   res.is_coinbase = getIsCoinbase(tx.vin);
   res.is_null_data = getIsNullData(tx.vout);
   res.transaction.inputs = getInputs(tx.txid, tx.vin, parent_tx);
-  res.transaction.inputs_value = getTotalValue(res.transaction.inputs);
+  res.transaction.inputsValue = getTotalValue(res.transaction.inputs);
   res.transaction.outputs = getOutputs(tx.vout);
   const transaction_outputs_value = getTotalValue(tx.vout);
-  res.transaction.fee = (BigNumber(res.transaction.inputs_value) - BigNumber(transaction_outputs_value)).toFixed(8);
+  res.transaction.fee = (BigNumber(res.transaction.inputsValue) - BigNumber(transaction_outputs_value)).toFixed(8);
 
   return res;
 }
