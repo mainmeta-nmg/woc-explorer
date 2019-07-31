@@ -28,7 +28,11 @@ router.get("/blocks/:blockHeight", function(req, res) {
       txCount: result.tx.length
     }
 
-    res.json(res.locals.result);
+    res.json({
+      data: res.locals.result,
+      errNo: 0,
+      errMsg: ""
+    });
 	});
 });
 
@@ -147,8 +151,11 @@ router.get("/blocks/:blockHeight/transactions", function(req, res) {
           transactions.push(res_trans.transaction);
       }
 
-      res.json(transactions);
-      // res.json(res.locals.result);
+      res.json({
+        data: transactions,
+        errNo: 0,
+        errMsg: ""  
+      });
 		});
 	});
 });
@@ -184,14 +191,19 @@ router.get("/transactions/:transactionId", function(req, res) {
 
         const res_trans = getTransaction(rawTxResult, result3.height, {[txid]: txInputs});
 
-				res.json(res_trans.transaction);
+				res.json({
+          data: res_trans.transaction,
+          errNo: 0,
+          errMsg: ""    
+        });
 			});
 		});
 	}).catch(function(err) {
-    res.locals.error = err;
-		res.locals.userMessage = "Failed to load transaction with txid=" + txid + ": " + err;
-
-		res.json(res.locals);
+		res.json({
+      data: null,
+      errNo: err,
+      errMsg: `Failed to load transaction with txid=${txid}, err=${err}`
+    });
 	});
 });
 
