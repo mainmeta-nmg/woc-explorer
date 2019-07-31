@@ -28,6 +28,7 @@ var crawlerBotUserAgentStrings = [ "Googlebot", "Bingbot", "Slurp", "DuckDuckBot
 
 
 var baseActionsRouter = require('./routes/baseActionsRouter');
+var apiRouter = require('./routes/apiRouter');
 
 var app = express();
 
@@ -304,6 +305,7 @@ app.use(function(req, res, next) {
 	next();
 });
 
+app.use('/api', apiRouter);
 app.use('/', baseActionsRouter);
 
 /// catch 404 and forwarding to error handler
